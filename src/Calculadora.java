@@ -1,6 +1,5 @@
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.LineBorder;
+
 
 import java.awt.*;
 
@@ -59,7 +58,7 @@ public class Calculadora extends JFrame {
         addButton(padOperaciones, "-");
         addButton(padOperaciones, "*");
         addButton(padOperaciones, "/");
-        addButton(padOperaciones, "=");
+        addButton(padOperaciones, "=");; // Color rojo para números negativos
         addButton(padOperaciones, "C");
 
         etiquetaModo = new JLabel("Modo: " + currentMode);
@@ -80,7 +79,7 @@ public class Calculadora extends JFrame {
     }
 
     private void addButton(JPanel panel, String label) {
-        JButton button = new JButton(label) {
+        JButton button = new JButton(label) {  
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -105,8 +104,7 @@ public class Calculadora extends JFrame {
                 setContentAreaFilled(false); // Quitar fondo estándar
             }
         };
-
-        // Configuración del botón
+            // Configuración del botón
             button.setBackground(Color.WHITE);
             button.setForeground(Color.BLACK);
             button.setFont(new Font("Arial", Font.BOLD, 26));
@@ -116,9 +114,7 @@ public class Calculadora extends JFrame {
 
             panel.add(button);
     
-        }
-        
-    
+        }     
 
     private void assignListeners() {
         // Agregar ActionListener a los botones numéricos y "."
@@ -148,20 +144,19 @@ public class Calculadora extends JFrame {
             }
             displayTexto.setText(displayTexto.getText() + input);
         }
+        actualizarDisplay(); // Llamada al método
     }
+    
 
     private void handleOperation(String operation) {
         switch (operation) {
             case "C":
-                valorAlmacenado = 0;
-                displayTexto.setText("0");
-                displayAlmacenado.setText("");
-                operacionActual = "";
-                newInput = true;
+                limpiar();
                 break;
             case "+/-":
-                double currentValue = Double.parseDouble(displayTexto.getText());
+                double currentValue = Double.parseDouble(normalizeDecimal(displayTexto.getText()));
                 displayTexto.setText(String.valueOf(-currentValue));
+                actualizarDisplay();
                 break;
             case "=":
                 if (!operacionActual.isEmpty()) {
@@ -174,7 +169,7 @@ public class Calculadora extends JFrame {
                 if (!operacionActual.isEmpty()) {
                     performCalculation();
                 } else {
-                    valorAlmacenado = Double.parseDouble(displayTexto.getText());
+                    valorAlmacenado = Double.parseDouble(normalizeDecimal(displayTexto.getText()));
                 }
                 operacionActual = operation;
                 displayAlmacenado.setText(valorAlmacenado + " " + operacionActual);
@@ -183,8 +178,13 @@ public class Calculadora extends JFrame {
         }
     }
 
+    private String normalizeDecimal(String text) {
+        return text.replace(",", "."); // Reemplaza coma con punto
+    }
+
+
     private void performCalculation() {
-        double currentValue = Double.parseDouble(displayTexto.getText());
+        double currentValue = Double.parseDouble(normalizeDecimal(displayTexto.getText())); // Normalizar el número ingresado
         switch (operacionActual) {
             case "+":
                 valorAlmacenado += currentValue;
@@ -197,18 +197,41 @@ public class Calculadora extends JFrame {
                 break;
             case "/":
                 if (currentValue != 0) {
-                    valorAlmacenado /= currentValue;
+                    valorAlmacenado /= currentValue; // División segura
                 } else {
                     JOptionPane.showMessageDialog(this, "Error: División por cero");
+                    limpiar();
                     return;
                 }
                 break;
         }
-        displayTexto.setText(String.valueOf(valorAlmacenado));
+        displayTexto.setText(String.valueOf(valorAlmacenado)); // Actualizar el texto del resultado
+        actualizarDisplay(); // Mostrar en formato con coma
         newInput = true;
     }
 
+    private void limpiar() {
+        displayTexto.setText("0");
+        displayAlmacenado.setText("");
+        valorAlmacenado = 0;
+        operacionActual = "";
+        newInput = true;
+    }
 
+    private void actualizarDisplay() {
+        String text = displayTexto.getText();
+        if (text.contains("-")) {
+            displayTexto.setForeground(Color.RED); // Color rojo para números negativos
+        } else {
+            displayTexto.setForeground(Color.BLACK); // Color negro para números positivos o cero
+        }
+        // Asegurar que los decimales se muestren con coma en lugar de punto
+        if (text.contains(".")) {
+            text = text.replace(".", ",");
+            displayTexto.setText(text);
+        }
+    }
+    
     public static void main(String[] args) {
             Calculadora calc = new Calculadora();
             calc.setVisible(true);
