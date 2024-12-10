@@ -3,6 +3,8 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.HashMap;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 
 public class Calculadora extends JFrame {
     private JTextField displayTexto;
@@ -14,6 +16,8 @@ public class Calculadora extends JFrame {
     private boolean newInput = true;
     private boolean tecladoActivo = false; 
     private boolean ratonActivo = true;
+    private DecimalFormat decimalFormat;
+
     private final HashMap<String, JButton> keyButtonMap = new HashMap<>();
 
     public Calculadora() {
@@ -27,31 +31,37 @@ public class Calculadora extends JFrame {
         setSize(width, height);
         setLocationRelativeTo(null);
 
+        // Panel de visualización
         JPanel displayPanel = new JPanel(new GridLayout(2, 1));
         padNumerico = new JPanel(new GridLayout(4, 3));
         padOperaciones = new JPanel(new GridLayout(6, 1));
         
+        // Campo de texto para el valor almacenado
         displayAlmacenado = new JTextField();
         displayAlmacenado.setHorizontalAlignment(JTextField.RIGHT);
         displayAlmacenado.setEditable(false);
         displayAlmacenado.setBackground(new Color(132, 227, 155));
         displayAlmacenado.setFont(new Font("Arial", Font.PLAIN, 18)); 
         
+        // Campo de texto principal
         displayTexto = new JTextField("0");
         displayTexto.setHorizontalAlignment(JTextField.RIGHT);
         displayTexto.setEditable(false);
         displayTexto.setBackground(new Color(171, 255, 192));
         displayTexto.setFont(new Font("Arial", Font.BOLD, 24)); 
         
+        // Agregar campos al panel
         displayPanel.add(displayAlmacenado);
         displayPanel.add(displayTexto);
 
+        // Botones numéricos
         for (int i = 1; i <= 9; i++) {
             addButton(padNumerico, String.valueOf(i));
         }
         addButton(padNumerico, "0");
         addButton(padNumerico, ".");
         
+        // Botones de operaciones
         addButton(padOperaciones, "+");
         addButton(padOperaciones, "-");
         addButton(padOperaciones, "*");
@@ -59,6 +69,7 @@ public class Calculadora extends JFrame {
         addButton(padOperaciones, "=");
         addButton(padOperaciones, "C");
 
+        // Panel para modos
         JPanel modePanel = new JPanel(new FlowLayout());
         JButton btnRaton = new JButton("Ratón");
         JButton btnTeclado = new JButton("Teclado");
@@ -83,6 +94,7 @@ public class Calculadora extends JFrame {
 
         asignarListeners();
 
+        // Agregar KeyListener para capturar las teclas
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -120,6 +132,10 @@ public class Calculadora extends JFrame {
                 setContentAreaFilled(false);
             }
         };
+
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+        symbols.setDecimalSeparator(',');
+        decimalFormat = new DecimalFormat("#.########", symbols);
 
         button.setBackground(Color.WHITE);
         button.setForeground(Color.BLACK);
@@ -160,10 +176,10 @@ public class Calculadora extends JFrame {
 
     private void manejarInput(String input) {
         if (newInput) {
-            displayTexto.setText(input.equals(".") ? "0." : input);
+            displayTexto.setText(input.equals(",") ? "0," : input);
             newInput = false;
         } else {
-            if (input.equals(".") && displayTexto.getText().contains(".")) {
+            if (input.equals(",") && displayTexto.getText().contains(",")) {
                 return;
             }
             displayTexto.setText(displayTexto.getText() + input);
@@ -171,6 +187,7 @@ public class Calculadora extends JFrame {
         actualizarDisplay();
         actualizarColorTexto();
     }
+    
 
     private void manejoOperaciones(String operation) {
         switch (operation) {
@@ -187,54 +204,59 @@ public class Calculadora extends JFrame {
                 if (!operacionActual.isEmpty()) {
                     calcular();
                 } else {
-                    valorAlmacenado = Double.parseDouble(displayTexto.getText());
+                    valorAlmacenado = Double.parseDouble(displayTexto.getText().replace(',', '.'));
                 }
                 operacionActual = operation;
-                displayAlmacenado.setText(valorAlmacenado + " " + operacionActual);
+                displayAlmacenado.setText(decimalFormat.format(valorAlmacenado) + " " + operacionActual);
                 newInput = true;
                 break;
         }
     }
+    
+    
 
     private void calcular() {
-        double currentValue = Double.parseDouble(displayTexto.getText());
-    switch (operacionActual) {
-        case "+":
-            valorAlmacenado += currentValue;
-            break;
-        case "-":
-            valorAlmacenado -= currentValue;
-            break;
-        case "*":
-            valorAlmacenado *= currentValue;
-            break;
-        case "/":
-            if (currentValue != 0) {
-                valorAlmacenado /= currentValue;
-            } else {
-                JOptionPane.showMessageDialog(this, "Error: División por cero");
-                limpiar();
-                return;
-            }
-            break;
-    }
-        displayTexto.setText(String.valueOf(valorAlmacenado));
+        double currentValue = Double.parseDouble(displayTexto.getText().replace(',', '.'));
+        switch (operacionActual) {
+            case "+":
+                valorAlmacenado += currentValue;
+                break;
+            case "-":
+                valorAlmacenado -= currentValue;
+                break;
+            case "*":
+                valorAlmacenado *= currentValue;
+                break;
+            case "/":
+                if (currentValue != 0) {
+                    valorAlmacenado /= currentValue;
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error: División por cero");
+                    limpiar();
+                    return;
+                }
+                break;
+        }
+        // Mostrar el resultado con comas como separador decimal
+        displayTexto.setText(decimalFormat.format(valorAlmacenado));
         newInput = true;
         actualizarColorTexto();
     }
-
+    
+    
     private void setMode(String mode) {
         tecladoActivo = mode.equals("Teclado numérico") || mode.equals("Libre");
         ratonActivo = mode.equals("Ratón") || mode.equals("Libre");
 
         if (tecladoActivo) {
-            requestFocusInWindow(); 
+            requestFocusInWindow(); // Para que la ventana reciba el foco y pueda capturar las teclas
         }
     }
 
     private void teclasPadNumerico(KeyEvent e) {
         String keyString = "";
         
+        // Verificar las teclas numéricas y de operación solo del teclado numérico derecho
         switch (e.getKeyCode()) {
             case KeyEvent.VK_NUMPAD0:
             case KeyEvent.VK_NUMPAD1:
@@ -264,8 +286,9 @@ public class Calculadora extends JFrame {
                 keyString = "=";
                 break;
             case KeyEvent.VK_DECIMAL:
-                keyString = ".";
+                keyString = ",";
                 break;
+            
         }
 
         if (!keyString.isEmpty()) {
@@ -294,12 +317,23 @@ public class Calculadora extends JFrame {
     }
     
     private void actualizarColorTexto() {
-        if (Double.parseDouble(displayTexto.getText()) < 0) {
+        double valor;
+        try {
+            // Convertir el texto reemplazando comas por puntos antes de parsear
+            valor = Double.parseDouble(displayTexto.getText().replace(',', '.'));
+        } catch (NumberFormatException e) {
+            // Manejar la excepción si no es un número válido (por ejemplo, si está vacío)
+            valor = 0;
+        }
+    
+        // Cambiar el color según el valor
+        if (valor < 0) {
             displayTexto.setForeground(Color.RED);
         } else {
             displayTexto.setForeground(Color.BLACK);
         }
     }
+    
 
     private void establecerEnfoque() {
         SwingUtilities.invokeLater(this::requestFocusInWindow);
